@@ -155,20 +155,6 @@ gdbinit_ck_tile/
     └── ...
 ```
 
-### Design Principles
-
-- **DRY**: No code duplication - shared logic in base classes and mixins
-- **Modular**: Each printer in its own file
-- **Testable**: Comprehensive regression test suite
-- **Extensible**: Easy to add new printers
-
-## Code Metrics
-
-- **Lines of code**: ~900 (down from 1637 in monolithic version)
-- **Code reduction**: 45%
-- **Duplication eliminated**: 400+ lines
-- **Test coverage**: Regression tests for all printer types
-
 ## License
 
 [Your license here]
