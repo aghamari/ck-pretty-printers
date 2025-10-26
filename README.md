@@ -2,13 +2,6 @@
 
 Beautiful, modular GDB pretty printers for AMD Composable Kernel (CK-Tile) types.
 
-## Features
-
-- 🎨 **Pretty printing** for all CK-Tile tensor types
-- 🧩 **Modular design** - easy to extend and maintain
-- ✅ **Fully tested** with regression test suite
-- 📦 **Zero dependencies** - works with standard GDB/ROCgdb
-
 ## Supported Types
 
 - `ck_tile::tensor_descriptor`
@@ -46,6 +39,16 @@ if os.path.exists(os.path.join(ck_tile_printers_path, 'gdbinit_ck_tile.py')):
     sys.path.insert(0, ck_tile_printers_path)
     gdb.execute(f'source {ck_tile_printers_path}/gdbinit_ck_tile.py')
 end
+```
+**Note:** For optimal debugging experience, compile your CK-Tile project with debug symbols
+and optimizations disabled:
+
+```bash
+cmake -S . -B build \
+-DCMAKE_BUILD_TYPE=Debug \
+-DCMAKE_CXX_FLAGS_DEBUG="-O0 -g -ggdb3 -fno-inline -fno-omit-frame-pointer" \
+-DCMAKE_HIP_FLAGS_DEBUG="-O0 -g -ggdb3"
+cmake --build build -j$(nproc)
 ```
 
 ### 3. Verify installation
