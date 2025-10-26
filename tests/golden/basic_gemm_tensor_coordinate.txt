@@ -1,0 +1,23 @@
+$3 = {
+  static N = 1,
+  data = {{
+      <ck_tile::impl::tuple_base<ck_tile::sequence<0, 1>, ck_tile::tensor_adaptor_coordinate<10, ck_tile::sequence<0, 1>, ck_tile::sequence<8, 9, 3, 7> >, ck_tile::tensor_coordinate<3, ck_tile::sequence<1, 2> > >> = {
+        <ck_tile::impl::tuple_object<0, ck_tile::tensor_adaptor_coordinate<10, ck_tile::sequence<0, 1>, ck_tile::sequence<8, 9, 3, 7> >, false>> = {
+          element = tensor_adaptor_coordinate{
+  idx_hidden_ (data): [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  bottom_dimension_ids: [0, 1]
+  top_dimension_ids: [8, 9, 3, 7]
+  top_index: [0, 0, 0, 0]
+  bottom_index: [0, 0]
+}
+        }, 
+        <ck_tile::impl::tuple_object<1, ck_tile::tensor_coordinate<3, ck_tile::sequence<1, 2> >, false>> = {
+          element = tensor_coordinate{
+  idx_hidden_ (data): [0, 0, 0]
+  bottom_dimension_ids: [0]
+  top_dimension_ids: [1, 2]
+  index (top): [0, 0]
+  offset (bottom[0]): 0
+}
+        }, <No data fields>}, <No data fields>}}
+}

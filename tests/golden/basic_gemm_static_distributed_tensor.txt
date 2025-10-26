@@ -1,0 +1,45 @@
+$4 = tensor_view{
+  data_type: float16
+
+  descriptor: tensor_descriptor{
+    element_space_size: 8192
+    ntransform: 8
+    ndim_hidden: 13
+    ndim_top: 2
+    ndim_bottom: 1
+    bottom_dimension_ids: [0]
+    top_dimension_ids: [11, 12]
+  
+    Transforms:
+      [0] embed
+          lower: [0]
+          upper: [1, 2, 3]
+          up_lengths: [8, 128, 8]
+          coefficients: [8, 64, 1]
+      [1] pass_through
+          lower: [2, 1]
+          upper: [4, 5]
+          up_lengths: [128, 8]
+      [2] unmerge
+          lower: [3]
+          upper: [6]
+          up_lengths: [8]
+      [3] pass_through
+          lower: [5]
+          upper: [7, 8]
+          up_lengths: [1, 8]
+      [4] pass_through
+          lower: [4]
+          upper: [9]
+          up_lengths: [128]
+      [5] merge_v2
+          lower: [6]
+          upper: [10]
+          up_lengths: [8]
+      [6] merge_v2
+          lower: [9, 7]
+          upper: [11]
+          up_lengths: [128]
+          low_lengths: [128, 1]
+  }
+}
