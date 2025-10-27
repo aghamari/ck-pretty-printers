@@ -379,29 +379,101 @@ class StaticDistributedTensorPrinter(BaseCKTilePrinter):
             if data_type:
                 result += f"  data_type: {data_type}\n"
 
-            # Extract shape
-            encoding_match = re.search(
-                r'tile_distribution_encoding<[^>]*tuple<ck_tile::sequence<([\d,\s]+)>',
-                type_str
-            )
+            # Extract shape from HsLengthss in tile_distribution_encoding
+            # Pattern: tile_distribution_encoding<..., ck_tile::tuple<ck_tile::sequence<4, 8, 64, 1> >, ...>
+            # Note: There may be a space before the closing >
+            shape = None
+            encoding_match = re.search(r'tile_distribution_encoding<', type_str)
             if encoding_match:
-                shape_str = encoding_match.group(1)
-                shape = [int(x.strip()) for x in shape_str.split(',') if x.strip().isdigit()]
-                if shape:
-                    result += f"  shape: {shape}\n"
+                # Find the first tuple after tile_distribution_encoding
+                start_pos = encoding_match.end()
+                # Skip the first sequence (RsLengths which is empty in this case)
+                after_rs = type_str[start_pos:]
+                tuple_match = re.search(r'tuple<ck_tile::sequence<([\d,\s]+)>\s*>', after_rs)
+                if tuple_match:
+                    shape_str = tuple_match.group(1)
+                    shape = [int(x.strip()) for x in shape_str.split(',') if x.strip().isdigit()]
 
-            # Check distribution pattern
-            if 'replicate' in type_str:
-                result += "  distribution: replicated\n"
-            elif 'unmerge' in type_str:
-                unmerge_match = re.search(r'unmerge<ck_tile::tuple<([^>]+)>', type_str)
-                if unmerge_match:
-                    params_str = unmerge_match.group(1)
-                    consts = re.findall(r'constant<(\d+)>', params_str)
+            if shape:
+                result += f"  shape: {shape}\n"
+
+            # Extract distribution transform information from tensor_adaptor in the type
+            # This reuses the existing transform extraction logic but from the type, not runtime
+            transforms = []
+
+            # Find tensor_adaptor and extract its transforms tuple
+            adaptor_match = re.search(r'tensor_adaptor<ck_tile::tuple<([^>]+(?:>[^>]+)*)', type_str)
+            if adaptor_match:
+                transforms_str = adaptor_match.group(1)
+
+                # Extract replicate
+                if 'replicate' in transforms_str:
+                    transforms.append("replicate")
+
+                # Extract unmerge with proper bracket matching
+                pos = 0
+                while True:
+                    unmerge_pos = transforms_str.find('unmerge<', pos)
+                    if unmerge_pos == -1:
+                        break
+
+                    # Find matching close bracket
+                    bracket_start = unmerge_pos + len('unmerge<')
+                    bracket_count = 1
+                    end = bracket_start
+                    while bracket_count > 0 and end < len(transforms_str):
+                        if transforms_str[end] == '<':
+                            bracket_count += 1
+                        elif transforms_str[end] == '>':
+                            bracket_count -= 1
+                        end += 1
+
+                    unmerge_content = transforms_str[bracket_start:end-1]
+                    consts = re.findall(r'constant<(\d+)>', unmerge_content)
                     if consts:
-                        result += f"  distribution: unmerged {consts}\n"
-            elif 'merge' in type_str:
-                result += "  distribution: merged\n"
+                        dims = [int(c) for c in consts]
+                        transforms.append(f"unmerge{dims}")
+
+                    pos = end
+
+                # Extract merge transforms
+                pos = 0
+                while True:
+                    merge_pos = transforms_str.find('merge', pos)
+                    if merge_pos == -1:
+                        break
+
+                    # Find the opening <
+                    open_bracket = transforms_str.find('<', merge_pos)
+                    if open_bracket == -1 or open_bracket > merge_pos + 30:  # Sanity check
+                        pos = merge_pos + 5
+                        continue
+
+                    # Find matching close bracket
+                    bracket_count = 1
+                    end = open_bracket + 1
+                    while bracket_count > 0 and end < len(transforms_str):
+                        if transforms_str[end] == '<':
+                            bracket_count += 1
+                        elif transforms_str[end] == '>':
+                            bracket_count -= 1
+                        end += 1
+
+                    merge_content = transforms_str[open_bracket+1:end-1]
+                    consts = re.findall(r'constant<(\d+)>', merge_content)
+                    if consts:
+                        dims = [int(c) for c in consts]
+                        # Get merge type
+                        merge_type = transforms_str[merge_pos:open_bracket]
+                        if 'v2' in merge_type:
+                            transforms.append(f"merge_v2{dims}")
+                        else:
+                            transforms.append(f"merge{dims}")
+
+                    pos = end
+
+            if transforms:
+                result += f"  transforms: {', '.join(transforms)}\n"
 
             # Try to get thread buffer size
             try:
