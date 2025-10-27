@@ -1,0 +1,276 @@
+importing........
+imported........
+CK-Tile pretty printers registered successfully
+Registered printers for:
+  Tensors: tensor_descriptor, tensor_adaptor, tensor_view, tensor_coordinate
+  Distributions: tile_distribution, tile_window, static_distributed_tensor
+  Containers: tuple, array, multi_index, thread_buffer
+CK-Tile pretty printers registered successfully
+Registered printers for:
+  Tensors: tensor_descriptor, tensor_adaptor, tensor_view, tensor_coordinate
+  Distributions: tile_distribution, tile_window, static_distributed_tensor
+  Containers: tuple, array, multi_index, thread_buffer
+No compiled code for line 820 in file "universal_gemm_kernel.hpp".
+Breakpoint 1 (universal_gemm_kernel.hpp:820) pending.
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff19ff640 (LWP 1228307)]
+[New Thread 0x7ffff11fe640 (LWP 1228308)]
+[Thread 0x7ffff11fe640 (LWP 1228308) exited]
+[New Thread 0x7fbfcfdff640 (LWP 1228310)]
+Launching kernel with args: gemm_fp16_pipeline_AgBgCrCompV3_16x64x128_256_1x4_0x0x0
+shape: tile_gemm_shape_16x64x128x4_1x4x1_16x16x32
+problem: gemm_problem_256_0x0x0_Intrawave
+pipeline: pipeline_AgBgCrCompV3_16x64x128_256_1x4_0x0x0
+grid: {15360, 1, 1}, blocks: {256, 1, 1}
+Flushing cache...
+RotatingMemWrapper: { size_a: 15728640, size_b: 16777216, rotating_count: 1000}
+[New Thread 0x7fb6de7ff640 (LWP 1228336)]
+[Thread 0x7fb6de7ff640 (LWP 1228336) exited]
+[New Thread 0x7ffff1ce1640 (LWP 1228337)]
+[Switching to thread 7, lane 0 (AMDGPU Lane 1:1:1:1/0 (0,0,0)[0,0,0])]
+
+Thread 7 "tile_example_ge" hit Breakpoint 1.31, with lanes [0-63], _ZN7ck_tile19UniversalGemmKernelINS_33GemmSpatiallyLocalTilePartitionerINS_13TileGemmShapeINS_8sequenceIJLi16ELi64ELi128EEEENS3_IJLi1ELi4ELi1EEEENS3_IJLi16ELi16ELi32EEEELb0ELb0EEELi8ELi4EEENS_24GemmPipelineAgBgCrCompV3INS_28UniversalGemmPipelineProblemIDF16_DF16_fS7_NS_23TileGemmUniversalTraitsILb0ELb0ELb0ELb0ENS_13tensor_layout4gemm8RowMajorENSD_11ColumnMajorESE_Lb0ELb0ELb0ELi1ELb0EEELNS_21GemmPipelineSchedulerE1ELb1ELNS_10TailNumberE10ENS_12element_wise11PassThroughESK_DF16_Lb0ELi1ELi1EEENS_33UniversalGemmPipelineAgBgCrPolicyEEENS_16CShuffleEpilogueINS_23CShuffleEpilogueProblemIDF16_DF16_NS_5tupleIJEEEfDF16_SR_SE_SK_Li16ELi64ELi1ELi4ELi16ELi16ELi32ELb0ELNS_21memory_operation_enumE0ELi1ELb0ELi1ELb0EEEvEEE16MakeGemmPadViewsINSQ_IJNSQ_IJNS_11tensor_viewINS_11buffer_viewILNS_18address_space_enumE1EKDF16_lLb1ELNS_25amd_buffer_coherence_enumE0EEENS_17tensor_descriptorINSQ_IJNS_5embedINSQ_IJiiEEES15_Lb0EEEEEENSQ_IJNS3_IJLi0EEEEEEENSQ_IJNS3_IJLi1ELi2EEEEEEES1A_lNS3_IJLin1ELin1ELi8EEEENS3_IJLin1ELin1ELi1EEEEEELSS_0EEEEEES1G_SR_NSX_INSY_ILSZ_1EDF16_lLb1ELS11_0EEES1E_LSS_0EEEEEEEEDaRKT_ (views=tuple<3 elements> {
+  [0]: tensor_view{
+      data_type: float16
+      descriptor: [error: There is no member or method named desc_.]
+    }
+  [1]: tensor_view{
+      data_type: float16
+      descriptor: [error: There is no member or method named desc_.]
+    }
+  [2]: tensor_view{
+      data_type: float16
+    
+      descriptor: tensor_descriptor{
+        ntransform: 1
+        ndim_hidden: 3
+        ndim_top: 2
+        ndim_bottom: 1
+        bottom_dimension_ids: [0]
+        top_dimension_ids: [1, 2]
+      
+        Transforms:
+          [0] embed
+              lower: [0]
+              upper: [1, 2]
+      }
+    }
+}) at /home/aghamari/composable_kernel/include/ck_tile/ops/gemm/kernel/universal_gemm_kernel.hpp:822
+822	        const auto& e_pad_view = [&]() {
+[Switching to thread 650, lane 0 (AMDGPU Lane 1:1:1:644/0 (369,0,0)[192,0,0])]
+
+Thread 650 "tile_example_ge" hit Breakpoint 1.31, with lanes [0-63], _ZN7ck_tile19UniversalGemmKernelINS_33GemmSpatiallyLocalTilePartitionerINS_13TileGemmShapeINS_8sequenceIJLi16ELi64ELi128EEEENS3_IJLi1ELi4ELi1EEEENS3_IJLi16ELi16ELi32EEEELb0ELb0EEELi8ELi4EEENS_24GemmPipelineAgBgCrCompV3INS_28UniversalGemmPipelineProblemIDF16_DF16_fS7_NS_23TileGemmUniversalTraitsILb0ELb0ELb0ELb0ENS_13tensor_layout4gemm8RowMajorENSD_11ColumnMajorESE_Lb0ELb0ELb0ELi1ELb0EEELNS_21GemmPipelineSchedulerE1ELb1ELNS_10TailNumberE10ENS_12element_wise11PassThroughESK_DF16_Lb0ELi1ELi1EEENS_33UniversalGemmPipelineAgBgCrPolicyEEENS_16CShuffleEpilogueINS_23CShuffleEpilogueProblemIDF16_DF16_NS_5tupleIJEEEfDF16_SR_SE_SK_Li16ELi64ELi1ELi4ELi16ELi16ELi32ELb0ELNS_21memory_operation_enumE0ELi1ELb0ELi1ELb0EEEvEEE16MakeGemmPadViewsINSQ_IJNSQ_IJNS_11tensor_viewINS_11buffer_viewILNS_18address_space_enumE1EKDF16_lLb1ELNS_25amd_buffer_coherence_enumE0EEENS_17tensor_descriptorINSQ_IJNS_5embedINSQ_IJiiEEES15_Lb0EEEEEENSQ_IJNS3_IJLi0EEEEEEENSQ_IJNS3_IJLi1ELi2EEEEEEES1A_lNS3_IJLin1ELin1ELi8EEEENS3_IJLin1ELin1ELi1EEEEEELSS_0EEEEEES1G_SR_NSX_INSY_ILSZ_1EDF16_lLb1ELS11_0EEES1E_LSS_0EEEEEEEEDaRKT_ (views=tuple<3 elements> {
+  [0]: tensor_view{
+      data_type: float16
+      descriptor: [error: There is no member or method named desc_.]
+    }
+  [1]: tensor_view{
+      data_type: float16
+      descriptor: [error: There is no member or method named desc_.]
+    }
+  [2]: tensor_view{
+      data_type: float16
+    
+      descriptor: tensor_descriptor{
+        ntransform: 1
+        ndim_hidden: 3
+        ndim_top: 2
+        ndim_bottom: 1
+        bottom_dimension_ids: [0]
+        top_dimension_ids: [1, 2]
+      
+        Transforms:
+          [0] embed
+              lower: [0]
+              upper: [1, 2]
+      }
+    }
+}) at /home/aghamari/composable_kernel/include/ck_tile/ops/gemm/kernel/universal_gemm_kernel.hpp:822
+822	        const auto& e_pad_view = [&]() {
+
+=== TEST 1: as_pad_view (tuple<tensor_view>) ===
+$1 = tuple<1 element> {
+  [0]: tensor_view{
+      data_type: float16
+    
+      descriptor: tensor_descriptor{
+        ntransform: 3
+        ndim_hidden: 5
+        ndim_top: 2
+        ndim_bottom: 1
+        bottom_dimension_ids: [0]
+        top_dimension_ids: [3, 4]
+      
+        Transforms:
+          [0] embed
+              lower: [0]
+              upper: [1, 2]
+          [1] pass_through
+              lower: [1]
+              upper: [3]
+          [2] pass_through
+              lower: [2]
+              upper: [4]
+      }
+    }
+}
+
+
+=== TEST 2: ds_pad_view (empty tuple) ===
+$2 = tuple<0 elements> {}
+Breakpoint 2 at 0x7fb6e4924dc8: universal_gemm_kernel.hpp:937. (312 locations)
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+[New Thread 0x7ffff19ff640 (LWP 1228379)]
+[New Thread 0x7ff7f0fff640 (LWP 1228380)]
+[Thread 0x7ff7f0fff640 (LWP 1228380) exited]
+[New Thread 0x7fbfcffff640 (LWP 1228381)]
+Launching kernel with args: gemm_fp16_pipeline_AgBgCrCompV3_16x64x128_256_1x4_0x0x0
+shape: tile_gemm_shape_16x64x128x4_1x4x1_16x16x32
+problem: gemm_problem_256_0x0x0_Intrawave
+pipeline: pipeline_AgBgCrCompV3_16x64x128_256_1x4_0x0x0
+grid: {15360, 1, 1}, blocks: {256, 1, 1}
+Flushing cache...
+RotatingMemWrapper: { size_a: 15728640, size_b: 16777216, rotating_count: 1000}
+[New Thread 0x7fb6de7ff640 (LWP 1228420)]
+[Thread 0x7fb6de7ff640 (LWP 1228420) exited]
+[New Thread 0x7ffff1ce1640 (LWP 1228421)]
+[Switching to thread 7, lane 0 (AMDGPU Lane 1:1:1:1/0 (0,0,0)[0,0,0])]
+
+Thread 7 "tile_example_ge" hit Breakpoint 2.31, with lanes [0-63], _ZN7ck_tile19UniversalGemmKernelINS_33GemmSpatiallyLocalTilePartitionerINS_13TileGemmShapeINS_8sequenceIJLi16ELi64ELi128EEEENS3_IJLi1ELi4ELi1EEEENS3_IJLi16ELi16ELi32EEEELb0ELb0EEELi8ELi4EEENS_24GemmPipelineAgBgCrCompV3INS_28UniversalGemmPipelineProblemIDF16_DF16_fS7_NS_23TileGemmUniversalTraitsILb0ELb0ELb0ELb0ENS_13tensor_layout4gemm8RowMajorENSD_11ColumnMajorESE_Lb0ELb0ELb0ELi1ELb0EEELNS_21GemmPipelineSchedulerE1ELb1ELNS_10TailNumberE10ENS_12element_wise11PassThroughESK_DF16_Lb0ELi1ELi1EEENS_33UniversalGemmPipelineAgBgCrPolicyEEENS_16CShuffleEpilogueINS_23CShuffleEpilogueProblemIDF16_DF16_NS_5tupleIJEEEfDF16_SR_SE_SK_Li16ELi64ELi1ELi4ELi16ELi16ELi32ELb0ELNS_21memory_operation_enumE0ELi1ELb0ELi1ELb0EEEvEEE19MakeGemmTileWindowsINSQ_IJNSQ_IJNS_11tensor_viewINS_11buffer_viewILNS_18address_space_enumE1EKDF16_lLb1ELNS_25amd_buffer_coherence_enumE0EEENS_17tensor_descriptorINSQ_IJNS_5embedINSQ_IJiiEEES15_Lb0EEENS_12pass_throughIiEES18_EEENSQ_IJNS3_IJLi0EEEENS3_IJLi1EEEENS3_IJLi2EEEEEEENSQ_IJNS3_IJLi1ELi2EEEENS3_IJLi3EEEENS3_IJLi4EEEEEEENS3_IJLi3ELi4EEEElNS3_IJLin1ELin1ELi8ELin1ELin1EEEENS3_IJLin1ELin1ELi1ELin1ELin1EEEEEELSS_0EEEEEES1N_SR_NSX_INSY_ILSZ_1EDF16_lLb1ELS11_0EEES1L_LSS_0EEEEEEEEDaRKT_ii (views=tuple<3 elements> {
+  [0]: tensor_view{
+      data_type: float16
+      descriptor: [error: There is no member or method named desc_.]
+    }
+  [1]: tensor_view{
+      data_type: float16
+      descriptor: [error: There is no member or method named desc_.]
+    }
+  [2]: tensor_view{
+      data_type: float16
+    
+      descriptor: tensor_descriptor{
+        ntransform: 3
+        ndim_hidden: 5
+        ndim_top: 2
+        ndim_bottom: 1
+        bottom_dimension_ids: [0]
+        top_dimension_ids: [3, 4]
+      
+        Transforms:
+          [0] embed
+              lower: [0]
+              upper: [1, 2]
+          [1] pass_through
+              lower: [1]
+              upper: [3]
+          [2] pass_through
+              lower: [2]
+              upper: [4]
+      }
+    }
+}, i_m=0, i_n=0) at /home/aghamari/composable_kernel/include/ck_tile/ops/gemm/kernel/universal_gemm_kernel.hpp:937
+937	        return make_tuple(as_block_window, bs_block_window, ds_block_window, e_block_window);
+[Switching to thread 1006, lane 0 (AMDGPU Lane 1:1:1:1000/0 (170,0,0)[192,0,0])]
+
+Thread 1006 "tile_example_ge" hit Breakpoint 2.31, with lanes [0-63], _ZN7ck_tile19UniversalGemmKernelINS_33GemmSpatiallyLocalTilePartitionerINS_13TileGemmShapeINS_8sequenceIJLi16ELi64ELi128EEEENS3_IJLi1ELi4ELi1EEEENS3_IJLi16ELi16ELi32EEEELb0ELb0EEELi8ELi4EEENS_24GemmPipelineAgBgCrCompV3INS_28UniversalGemmPipelineProblemIDF16_DF16_fS7_NS_23TileGemmUniversalTraitsILb0ELb0ELb0ELb0ENS_13tensor_layout4gemm8RowMajorENSD_11ColumnMajorESE_Lb0ELb0ELb0ELi1ELb0EEELNS_21GemmPipelineSchedulerE1ELb1ELNS_10TailNumberE10ENS_12element_wise11PassThroughESK_DF16_Lb0ELi1ELi1EEENS_33UniversalGemmPipelineAgBgCrPolicyEEENS_16CShuffleEpilogueINS_23CShuffleEpilogueProblemIDF16_DF16_NS_5tupleIJEEEfDF16_SR_SE_SK_Li16ELi64ELi1ELi4ELi16ELi16ELi32ELb0ELNS_21memory_operation_enumE0ELi1ELb0ELi1ELb0EEEvEEE19MakeGemmTileWindowsINSQ_IJNSQ_IJNS_11tensor_viewINS_11buffer_viewILNS_18address_space_enumE1EKDF16_lLb1ELNS_25amd_buffer_coherence_enumE0EEENS_17tensor_descriptorINSQ_IJNS_5embedINSQ_IJiiEEES15_Lb0EEENS_12pass_throughIiEES18_EEENSQ_IJNS3_IJLi0EEEENS3_IJLi1EEEENS3_IJLi2EEEEEEENSQ_IJNS3_IJLi1ELi2EEEENS3_IJLi3EEEENS3_IJLi4EEEEEEENS3_IJLi3ELi4EEEElNS3_IJLin1ELin1ELi8ELin1ELin1EEEENS3_IJLin1ELin1ELi1ELin1ELin1EEEEEELSS_0EEEEEES1N_SR_NSX_INSY_ILSZ_1EDF16_lLb1ELS11_0EEES1L_LSS_0EEEEEEEEDaRKT_ii (views=tuple<3 elements> {
+  [0]: tensor_view{
+      data_type: float16
+      descriptor: [error: There is no member or method named desc_.]
+    }
+  [1]: tensor_view{
+      data_type: float16
+      descriptor: [error: There is no member or method named desc_.]
+    }
+  [2]: tensor_view{
+      data_type: float16
+    
+      descriptor: tensor_descriptor{
+        ntransform: 3
+        ndim_hidden: 5
+        ndim_top: 2
+        ndim_bottom: 1
+        bottom_dimension_ids: [0]
+        top_dimension_ids: [3, 4]
+      
+        Transforms:
+          [0] embed
+              lower: [0]
+              upper: [1, 2]
+          [1] pass_through
+              lower: [1]
+              upper: [3]
+          [2] pass_through
+              lower: [2]
+              upper: [4]
+      }
+    }
+}, i_m=976, i_n=320) at /home/aghamari/composable_kernel/include/ck_tile/ops/gemm/kernel/universal_gemm_kernel.hpp:937
+937	        return make_tuple(as_block_window, bs_block_window, ds_block_window, e_block_window);
+
+
+=== TEST 3: as_block_window (tuple<tile_window>) ===
+$3 = tuple<1 element> {
+  [0]: tile_window_with_static_lengths{
+      data_type: float16
+      window_dims: [16 x 128]
+    
+      bottom_tensor_view_: tensor_view{
+        data_type: float16
+      
+        descriptor: tensor_descriptor{
+          ntransform: 3
+          ndim_hidden: 5
+          ndim_top: 2
+          ndim_bottom: 1
+          bottom_dimension_ids: [0]
+          top_dimension_ids: [3, 4]
+        
+          Transforms:
+            [0] embed
+                lower: [0]
+                upper: [1, 2]
+            [1] pass_through
+                lower: [1]
+                upper: [3]
+            [2] pass_through
+                lower: [2]
+                upper: [4]
+        }
+      }
+    }
+}
+
+
+=== TEST 4: bs_block_window (tuple<tile_window>) ===
+$4 = tuple<1 element> {
+  [0]: tile_window_with_static_lengths{
+      data_type: float16
+      window_dims: [64 x 128]
+    
+      bottom_tensor_view_: tensor_view{
+        data_type: float16
+      
+        descriptor: tensor_descriptor{
+          ntransform: 3
+          ndim_hidden: 5
+          ndim_top: 2
+          ndim_bottom: 1
+          bottom_dimension_ids: [0]
+          top_dimension_ids: [3, 4]
+        
+          Transforms:
+            [0] embed
+                lower: [0]
+                upper: [1, 2]
+            [1] pass_through
+                lower: [1]
+                upper: [3]
+            [2] pass_through
+                lower: [2]
+                upper: [4]
+        }
+      }
+    }
+}

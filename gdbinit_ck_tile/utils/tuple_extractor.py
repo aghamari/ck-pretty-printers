@@ -3,6 +3,7 @@ Utilities for extracting elements from ck_tile::tuple structures in GDB.
 Handles both compile-time constants and runtime values.
 """
 
+import gdb
 import re
 from .cpp_type_parser import extract_constant_value
 
@@ -28,23 +29,34 @@ def extract_tuple_elements(tuple_obj):
     elements = []
 
     try:
+        # Strip reference and const qualifiers
+        actual_type = tuple_obj.type
+        if actual_type.code == gdb.TYPE_CODE_REF:
+            tuple_obj = tuple_obj.referenced_value()
+            actual_type = tuple_obj.type
+
+        # Strip const
+        actual_type = actual_type.unqualified()
+
         # First, cast to the tuple_base (the immediate base class)
-        for field in tuple_obj.type.fields():
+        for field in actual_type.fields():
             field_type_str = str(field.type)
 
             if 'tuple_base' in field_type_str:
                 # Cast to the base class
                 base = tuple_obj.cast(field.type)
 
-                # Now iterate through the tuple_object fields in the base
+                # The tuple_base contains tuple_object as its base classes (fields)
+                # Each tuple_object field has an 'element' field containing the data
                 for base_field in base.type.fields():
-                    base_field_type_str = str(base_field.type)
+                    # The field name itself is the tuple_object type
+                    base_field_name_str = str(base_field.name)
 
-                    if 'tuple_object' in base_field_type_str:
+                    if 'tuple_object' in base_field_name_str:
                         try:
                             # Extract element type from tuple_object<Index, ElementType, bool>
                             # Need bracket counting because ElementType may have nested templates
-                            match = re.search(r'tuple_object<(\d+),\s*', base_field_type_str)
+                            match = re.search(r'tuple_object<(\d+),\s*', base_field_name_str)
 
                             if match:
                                 start_pos = match.end()
@@ -53,19 +65,19 @@ def extract_tuple_elements(tuple_obj):
                                 bracket_count = 0
                                 pos = start_pos
 
-                                while pos < len(base_field_type_str):
-                                    if base_field_type_str[pos] == '<':
+                                while pos < len(base_field_name_str):
+                                    if base_field_name_str[pos] == '<':
                                         bracket_count += 1
-                                    elif base_field_type_str[pos] == '>':
+                                    elif base_field_name_str[pos] == '>':
                                         if bracket_count > 0:
                                             bracket_count -= 1
                                         else:
                                             break
-                                    elif base_field_type_str[pos] == ',' and bracket_count == 0:
+                                    elif base_field_name_str[pos] == ',' and bracket_count == 0:
                                         break
                                     pos += 1
 
-                                element_type = base_field_type_str[start_pos:pos].strip()
+                                element_type = base_field_name_str[start_pos:pos].strip()
 
                                 # Check if the ELEMENT type itself is EXACTLY ck_tile::constant<N>
                                 # (not a complex type that HAS constants in its template params)
@@ -76,6 +88,7 @@ def extract_tuple_elements(tuple_obj):
                                         elements.append(const_val)
                                 else:
                                     # It's a runtime value or complex type, access the element field
+                                    # Cast to the tuple_object type and get the element
                                     tuple_obj_cast = base.cast(base_field.type)
                                     elem = tuple_obj_cast['element']
 

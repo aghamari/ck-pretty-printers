@@ -27,6 +27,11 @@ from gdbinit_ck_tile.printers.tile_distribution import (
     TileWindowPrinter,
     StaticDistributedTensorPrinter,
 )
+from gdbinit_ck_tile.printers.containers import (
+    TuplePrinter,
+    ArrayPrinter,
+    ThreadBufferPrinter,
+)
 
 
 def build_pretty_printer():
@@ -90,6 +95,29 @@ def build_pretty_printer():
         StaticDistributedTensorPrinter
     )
 
+    # Core container printers
+    # Patterns need to handle const/volatile qualifiers and references
+    pp.add_printer(
+        'tuple',
+        '(^|.*\s)ck_tile::tuple<.*>',
+        TuplePrinter
+    )
+    pp.add_printer(
+        'array',
+        '(^|.*\s)ck_tile::array<.*>',
+        ArrayPrinter
+    )
+    pp.add_printer(
+        'multi_index',
+        '(^|.*\s)ck_tile::multi_index<.*>',
+        ArrayPrinter  # multi_index is just an alias for array
+    )
+    pp.add_printer(
+        'thread_buffer',
+        '(^|.*\s)ck_tile::thread_buffer<.*>',
+        ThreadBufferPrinter
+    )
+
     return pp
 
 
@@ -102,9 +130,10 @@ def register_printers(obj):
 try:
     register_printers(None)
     print("CK-Tile pretty printers registered successfully")
-    print("Registered printers for: tensor_descriptor, tensor_adaptor, tensor_adaptor_coordinate,")
-    print("  tensor_coordinate, tensor_view, tile_distribution, tile_distribution_encoding,")
-    print("  tile_window, static_distributed_tensor")
+    print("Registered printers for:")
+    print("  Tensors: tensor_descriptor, tensor_adaptor, tensor_view, tensor_coordinate")
+    print("  Distributions: tile_distribution, tile_window, static_distributed_tensor")
+    print("  Containers: tuple, array, multi_index, thread_buffer")
 except Exception as e:
     print(f"Failed to register pretty printers: {e}")
     import traceback
