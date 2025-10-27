@@ -2,12 +2,6 @@
 
 Beautiful, modular GDB pretty printers for AMD Composable Kernel (CK-Tile) types.
 
-## Features
-
-- 🎨 **Pretty printing** for all CK-Tile tensor types
-- 🧩 **Modular design** - easy to extend and maintain
-- ✅ **Fully tested** with regression test suite
-- 📦 **Zero dependencies** - works with standard GDB/ROCgdb
 
 ## Supported Types
 
@@ -21,38 +15,59 @@ Beautiful, modular GDB pretty printers for AMD Composable Kernel (CK-Tile) types
 - `ck_tile::tile_window` (all variants)
 - `ck_tile::static_distributed_tensor`
 
-## Installation
+## Quick Start
 
-### 1. Clone this repository
-
+### Step 1: Clone this repository anywhere
 ```bash
-git clone <repo-url>
-cd ck-tile-gdb-printers
+git clone <repo-url> /path/to/ck-tile-gdb-printers
 ```
 
-### 2. Add to your `.gdbinit`
+### Step 2: Choose your setup method
 
-Add the following to your `~/.gdbinit`:
+#### Option A: Use ~/.gdbinit (Recommended for persistent setup)
+Copy the example configuration to your home directory and edit the path:
 
+```bash
+cp /path/to/ck-tile-gdb-printers/examples/example.gdbinit ~/.gdbinit
+```
+
+Edit `~/.gdbinit` and change this line:
 ```python
-python
-import os
-import sys
+ck_tile_printers_path = '/path/to/ck-tile-gdb-printers'  # Update this path!
+```
 
-# Path to the pretty printers
-ck_tile_printers_path = '/path/to/ck-tile-gdb-printers'
-
-if os.path.exists(os.path.join(ck_tile_printers_path, 'gdbinit_ck_tile.py')):
-    sys.path.insert(0, ck_tile_printers_path)
-    gdb.execute(f'source {ck_tile_printers_path}/gdbinit_ck_tile.py')
+#### Option B: Load directly in GDB session
+```bash
+rocgdb ./your_program
+source /path/to/ck-tile-gdb-printers/gdbinit_ck_tile.py
 end
 ```
 
-### 3. Verify installation
+### Step 3: Build CK with proper debug symbols
+
+For optimal debugging experience, you need to compile Composable Kernel with debug symbols. **Important:** Comment out these lines in CK's CMakeLists.txt:
+
+```cmake
+# Comment out these lines for debug builds:
+# add_compile_options(
+#     "$<$<CONFIG:Debug>:-Og>"
+#     "$<$<CONFIG:Debug>:-gdwarf64>"
+# )
+```
+
+Then build with debug flags:
+```bash
+cmake -S . -B build \
+-DCMAKE_BUILD_TYPE=Debug \
+-DCMAKE_CXX_FLAGS_DEBUG="-O0 -g -ggdb3 -fno-inline -fno-omit-frame-pointer" \
+-DCMAKE_HIP_FLAGS_DEBUG="-O0 -g -ggdb3"
+cmake --build build -j$(nproc)
+```
+
+### Step 4: Verify installation
 
 ```bash
-rocgdb <your-program>
-
+rocgdb ./build/bin/your_program
 # You should see:
 # CK-Tile pretty printers registered successfully
 # Registered printers for: tensor_descriptor, tensor_adaptor, ...
@@ -60,20 +75,45 @@ rocgdb <your-program>
 
 ## Usage
 
-```gdb
-# Debug your program
+### Basic GDB Commands with Pretty Printers
+```bash
+# Start debugging
 rocgdb ./build/bin/my_program
 
-# Set breakpoint
-break my_function
+# Set breakpoints at specific lines
+(gdb) break filename.hpp:123
+(gdb) break /full/path/to/file.hpp:456
 
-# Run
-run
+# Set breakpoints at functions
+(gdb) break my_function
+(gdb) break ck_tile::MyClass::operator()
 
-# Pretty print CK-Tile types
-print my_tensor_descriptor
-print my_tensor_view
+# Run the program
+(gdb) run
+
+# When stopped at breakpoint, pretty print CK-Tile types
+(gdb) print my_tensor_descriptor
+(gdb) print my_tensor_view
+
+# Navigate through execution
+(gdb) next          # Next line
+(gdb) step          # Step into functions
+(gdb) continue      # Continue execution
+(gdb) backtrace     # Show call stack
 ```
+
+### Breakpoint Management
+```bash
+(gdb) info breakpoints              # List all breakpoints
+(gdb) break pool_kernel.hpp:377     # Set breakpoint at line 377
+(gdb) break main if argc > 1        # Conditional breakpoint
+(gdb) disable 1                     # Disable breakpoint #1
+(gdb) delete 1                      # Delete breakpoint #1
+(gdb) clear filename:line           # Remove breakpoint at location
+```
+
+### VS Code Integration
+The pretty printers also work with VS Code's debugger. See the `.vscode/` configuration files in your CK project for setup details.
 
 ## Example Output
 
@@ -185,3 +225,4 @@ gdbinit_ck_tile/
 ## Credits
 
 Developed for AMD Composable Kernel (CK-Tile) debugging.
+
