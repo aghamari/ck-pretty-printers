@@ -1,5 +1,6 @@
 """Pretty printers for CK-Tile core containers (tuple, array, etc.)"""
 
+import gdb
 import re
 from ..core.base_printer import BaseCKTilePrinter
 from ..utils.tuple_extractor import extract_tuple_elements
@@ -98,7 +99,12 @@ class ArrayPrinter(BaseCKTilePrinter):
 
     def to_string(self):
         try:
-            type_str = str(self.val.type)
+            # Strip typedefs to get the actual type
+            actual_type = self.val.type
+            while actual_type.code == gdb.TYPE_CODE_TYPEDEF:
+                actual_type = actual_type.strip_typedefs()
+
+            type_str = str(actual_type)
 
             # Determine if it's multi_index or array
             is_multi_index = 'multi_index' in type_str
@@ -131,10 +137,28 @@ class ArrayPrinter(BaseCKTilePrinter):
         if match:
             return int(match.group(1))
 
-        # Try array<T, N>
-        match = re.search(r'array<[^,]+,\s*(\d+)[lL]?>', type_str)
-        if match:
-            return int(match.group(1))
+        # Try array<T, N> with proper bracket matching
+        # Element type T can have commas, so we need to find the matching comma
+        array_start = type_str.find('array<')
+        if array_start != -1:
+            pos = array_start + len('array<')
+            bracket_count = 1
+
+            # Skip the element type (which may have nested <>)
+            while pos < len(type_str) and bracket_count > 0:
+                if type_str[pos] == '<':
+                    bracket_count += 1
+                elif type_str[pos] == '>':
+                    bracket_count -= 1
+                elif type_str[pos] == ',' and bracket_count == 1:
+                    # Found the comma separating element type from N
+                    # Extract N which comes after this comma
+                    rest = type_str[pos+1:]
+                    n_match = re.match(r'\s*(\d+)[lL]?\s*>', rest)
+                    if n_match:
+                        return int(n_match.group(1))
+                    break
+                pos += 1
 
         return None
 

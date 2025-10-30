@@ -19,6 +19,7 @@ PRINTER_TYPE_MAP = [
     # Tile window types (most specific - contain tensor_view)
     ('tile_window_with_static_distribution<', 'tile_distribution', 'TileWindowPrinter'),
     ('tile_window_with_static_lengths<', 'tile_distribution', 'TileWindowPrinter'),
+    ('tile_window_base<', 'tile_distribution', 'TileWindowPrinter'),
     ('tile_window<', 'tile_distribution', 'TileWindowPrinter'),
 
     # Static distributed tensor (contains tensor_adaptor/view)
