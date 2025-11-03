@@ -33,6 +33,7 @@ PRINTER_TYPE_MAP = [
     ('tensor_descriptor<', 'tensor_descriptor', 'TensorDescriptorPrinter'),
 
     # Distribution types
+    ('tile_distribution_encoding<', 'tile_distribution', 'TileDistributionEncodingPrinter'),
     ('tile_distribution<', 'tile_distribution', 'TileDistributionPrinter'),
 
     # Coordinate types
@@ -81,7 +82,8 @@ def get_printer_for_type(val: Any, type_str: str) -> Optional[Any]:
                     from ..printers.tile_distribution import (
                         TileWindowPrinter,
                         StaticDistributedTensorPrinter,
-                        TileDistributionPrinter
+                        TileDistributionPrinter,
+                        TileDistributionEncodingPrinter
                     )
                     printer_class = locals()[class_name]
                 elif module_name == 'tensor_view':

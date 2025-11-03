@@ -265,28 +265,18 @@ class TileDistributionEncodingPrinter(BaseCKTilePrinter):
     def to_string(self):
         try:
             type_str = str(self.val.type)
-            result = "tile_distribution_encoding{\n"
+            result = "tile_distribution_encoding"
 
-            # Extract template parameters
-            encoding_match = re.search(r'tile_distribution_encoding<(.*)>', type_str)
-            if not encoding_match:
-                return "tile_distribution_encoding{}"
+            # Reuse the encoding extraction logic from TileDistributionPrinter
+            # Create a temporary TileDistributionPrinter instance to use its method
+            temp_printer = TileDistributionPrinter(self.val)
+            encoding_info = temp_printer._extract_encoding_info(type_str)
 
-            content = encoding_match.group(1)
+            if encoding_info:
+                result += encoding_info
+            else:
+                result += "{}"
 
-            # Parse RsLengths (first sequence)
-            rs_match = re.search(r'^ck_tile::sequence<([\d,\s-]+)>', content)
-            if rs_match:
-                rs_str = rs_match.group(1)
-                rs_lengths = [
-                    int(x.strip())
-                    for x in rs_str.split(',')
-                    if x.strip().lstrip('-').isdigit()
-                ]
-                result += f"  RsLengths: {rs_lengths}\n"
-                result += f"  NDimR: {len(rs_lengths)}\n"
-
-            result += "}"
             return result
 
         except Exception as e:
