@@ -14,9 +14,10 @@ from ..utils.constants import TRANSFORM_PATTERNS
 class MermaidGenerator(TransformMixin):
     """Generate Mermaid diagrams from tensor types."""
 
-    def __init__(self, val):
+    def __init__(self, val, expression=None):
         self.val = val
         self.type_str = str(val.type)
+        self.expression = expression  # Original expression passed to mermaid command
 
     def generate_mermaid(self):
         """
@@ -25,7 +26,30 @@ class MermaidGenerator(TransformMixin):
         Returns:
             String containing Mermaid flowchart code
         """
-        # Determine type
+        # Better heuristic: Check the number of template parameters
+        # tensor_adaptor typically has more parameters than tensor_descriptor
+        # Count the number of top-level commas in the template
+
+        # Find the main template content
+        if 'ck_tile::' in self.type_str:
+            # Count template depth to distinguish between descriptor and adaptor
+            # tensor_adaptor has transforms AND bottom/top sequences
+            # tensor_descriptor has transforms and one sequence
+
+            # A more reliable check: tensor_adaptor has "ck_tile::sequence" appearing twice at the end
+            # tensor_descriptor has it appearing once
+            sequence_count = self.type_str.count('ck_tile::sequence<')
+
+            # tensor_adaptor typically has 2 sequences (bottom and top dims)
+            # tensor_descriptor typically has 1 sequence (top dims only)
+            if sequence_count >= 2:
+                # Likely tensor_adaptor
+                return self._generate_adaptor_mermaid()
+            else:
+                # Likely tensor_descriptor
+                return self._generate_descriptor_mermaid()
+
+        # Fallback to name-based detection
         if 'tensor_descriptor' in self.type_str:
             return self._generate_descriptor_mermaid()
         elif 'tensor_adaptor' in self.type_str:
@@ -113,8 +137,16 @@ class MermaidGenerator(TransformMixin):
     def _generate_adaptor_mermaid(self):
         """Generate Mermaid diagram for tensor_adaptor."""
 
-        # Extract transform information
-        transforms, lower_dims, upper_dims = self.extract_transform_info_from_type(
+        # For ps_ys_to_xs_ and similar cases, we need to get everything from pretty printer
+        # because the type extraction doesn't work correctly
+        if self.expression and ('ps_ys_to_xs_' in self.expression or 'ps_xs_to_ys_' in self.expression):
+            # Get EVERYTHING from pretty printer output
+            result = self._generate_from_pretty_printer()
+            if result:
+                return result
+
+        # Extract transform information from type
+        transforms, lower_dims_orig, upper_dims_orig = self.extract_transform_info_from_type(
             self.type_str, 'tensor_adaptor'
         )
 
@@ -123,6 +155,18 @@ class MermaidGenerator(TransformMixin):
 
         # Extract bottom and top dimension IDs from the type
         bottom_dims, top_dims = self._extract_adaptor_bottom_top_dims()
+
+        # Check if dimensions are empty - if so, try to get them from pretty printer output
+        if all(not dims for dims in lower_dims_orig) and all(not dims for dims in upper_dims_orig):
+            # Try to get dimensions from the pretty printer output via 'p' command
+            lower_dims, upper_dims = self._get_dimensions_from_pretty_printer(transforms)
+            if not lower_dims:
+                # Fall back to original empty dimensions
+                lower_dims = lower_dims_orig
+                upper_dims = upper_dims_orig
+        else:
+            lower_dims = lower_dims_orig
+            upper_dims = upper_dims_orig
 
         # Build Mermaid diagram
         lines = ["```mermaid", "graph TD"]
@@ -265,6 +309,240 @@ class MermaidGenerator(TransformMixin):
 
         return bottom_dims, top_dims
 
+    def _generate_from_pretty_printer(self):
+        """
+        Generate the complete Mermaid diagram from pretty printer output.
+        This is needed for ps_ys_to_xs_ and similar cases.
+        """
+        if not self.expression:
+            return None
+
+        try:
+            # Execute the 'p' command to get pretty printer output
+            output = gdb.execute(f"p {self.expression}", to_string=True)
+
+            # Remove the "$N = " prefix from GDB output
+            if ' = ' in output:
+                output = output.split(' = ', 1)[1]
+
+            # Parse everything from the output
+            transforms = []
+            lower_dims = []
+            upper_dims = []
+            bottom_dims = []
+            top_dims = []
+
+            lines = output.split('\n')
+
+            # Look for bottom and top dimension IDs
+            for line in lines:
+                if 'bottom_dimension_ids:' in line:
+                    match = re.search(r'\[([\d,\s-]+)\]', line)
+                    if match:
+                        bottom_dims = [int(x.strip()) for x in match.group(1).split(',') if x.strip().lstrip('-').isdigit()]
+
+                if 'top_dimension_ids:' in line:
+                    match = re.search(r'\[([\d,\s-]+)\]', line)
+                    if match:
+                        top_dims = [int(x.strip()) for x in match.group(1).split(',') if x.strip().lstrip('-').isdigit()]
+
+            # Parse transforms and dimensions
+            i = 0
+            while i < len(lines):
+                line = lines[i].strip()
+
+                # Look for transform marker like "[0] replicate" or "[1] unmerge"
+                transform_match = re.search(r'^\[(\d+)\]\s+(\w+)', line)
+                if transform_match:
+                    transform_name = transform_match.group(2)
+                    transforms.append(transform_name)
+
+                    # Collect parameters for this transform
+                    current_lower = []
+                    current_upper = []
+
+                    j = i + 1
+                    while j < len(lines):
+                        param_line = lines[j].strip()
+
+                        # Stop if we hit another transform or closing brace
+                        if re.search(r'^\[(\d+)\]\s+\w+', param_line) or param_line.startswith('}'):
+                            break
+
+                        # Extract lower dimension
+                        if 'lower:' in param_line:
+                            lower_match = re.search(r'lower:\s*\[([^\]]*)\]', param_line)
+                            if lower_match:
+                                lower_str = lower_match.group(1).strip()
+                                if lower_str:
+                                    current_lower = [int(x.strip()) for x in lower_str.split(',') if x.strip().lstrip('-').isdigit()]
+
+                        # Extract upper dimension
+                        if 'upper:' in param_line:
+                            upper_match = re.search(r'upper:\s*\[([^\]]*)\]', param_line)
+                            if upper_match:
+                                upper_str = upper_match.group(1).strip()
+                                if upper_str:
+                                    current_upper = [int(x.strip()) for x in upper_str.split(',') if x.strip().lstrip('-').isdigit()]
+
+                        j += 1
+
+                    lower_dims.append(current_lower)
+                    upper_dims.append(current_upper)
+
+                    i = j
+                else:
+                    i += 1
+
+            if not transforms:
+                return None
+
+            # Build Mermaid diagram
+            lines = ["```mermaid", "graph TD"]
+            lines.append("    %% Tensor Adaptor Transform Flow")
+            lines.append("")
+
+            # Track current dimension mapping
+            current_dims = {}
+
+            # Start with bottom dimensions
+            for dim in bottom_dims:
+                current_dims[dim] = f"B{dim}"
+                lines.append(f"    B{dim}[\"Bottom[{dim}]\"]")
+                lines.append(f"    style B{dim} fill:#e1f5fe")
+
+            lines.append("")
+
+            # Process each transform
+            for i, (transform, lower, upper) in enumerate(zip(transforms, lower_dims, upper_dims)):
+                transform_node = f"T{i}"
+
+                # Create transform node
+                transform_label = self._format_transform_label(transform, i, lower, upper)
+                color = self._get_transform_color(transform)
+                lines.append(f"    {transform_node}{transform_label}")
+                lines.append(f"    style {transform_node} fill:{color}")
+
+                # Connect inputs to transform
+                for dim in lower:
+                    if dim in current_dims:
+                        lines.append(f"    {current_dims[dim]} --> {transform_node}")
+
+                # Create output dimensions
+                new_dims = {}
+                for j, dim in enumerate(upper):
+                    out_node = f"D{i}_{j}"
+                    new_dims[dim] = out_node
+                    lines.append(f"    {out_node}[\"Dim[{dim}]\"]")
+                    lines.append(f"    {transform_node} --> {out_node}")
+
+                # Update current dimension mapping
+                for dim in lower:
+                    if dim in current_dims:
+                        del current_dims[dim]
+                current_dims.update(new_dims)
+
+                lines.append("")
+
+            # Connect to top dimensions
+            lines.append("    %% Top Dimensions")
+            for dim in top_dims:
+                top_node = f"X{dim}"
+                lines.append(f"    {top_node}[\"Top[{dim}]\"]")
+                lines.append(f"    style {top_node} fill:#c8e6c9")
+                if dim in current_dims:
+                    lines.append(f"    {current_dims[dim]} --> {top_node}")
+
+            lines.append("```")
+            return "\n".join(lines)
+
+        except Exception as e:
+            # If parsing fails, return None to fall back to type extraction
+            return None
+
+    def _get_dimensions_from_pretty_printer(self, transforms):
+        """
+        Get dimensions by executing 'p' command and parsing the pretty printer output.
+        This is needed when gdb.parse_and_eval doesn't give full access to the value.
+        """
+        if not self.expression:
+            return [], []
+
+        try:
+            # Execute the 'p' command to get pretty printer output
+            output = gdb.execute(f"p {self.expression}", to_string=True)
+
+            # Remove the "$N = " prefix from GDB output
+            if ' = ' in output:
+                output = output.split(' = ', 1)[1]
+
+            # Parse the output to extract dimensions
+            lower_dims = []
+            upper_dims = []
+
+            lines = output.split('\n')
+            i = 0
+            while i < len(lines):
+                line = lines[i].strip()
+
+                # Look for transform marker like "[0] embed"
+                if re.search(r'^\[(\d+)\]\s+\w+', line):
+                    # Found a transform, collect its parameters
+                    current_lower = []
+                    current_upper = []
+
+                    # Look at the next few lines for parameters
+                    j = i + 1
+                    while j < len(lines):
+                        param_line = lines[j].strip()
+
+                        # Stop if we hit another transform or closing brace
+                        if re.search(r'^\[(\d+)\]\s+\w+', param_line) or param_line.startswith('}'):
+                            break
+
+                        # Extract lower dimension
+                        if 'lower:' in param_line:
+                            lower_match = re.search(r'lower:\s*\[([^\]]*)\]', param_line)
+                            if lower_match:
+                                lower_str = lower_match.group(1).strip()
+                                if lower_str:
+                                    current_lower = [int(x.strip()) for x in lower_str.split(',') if x.strip().lstrip('-').isdigit()]
+
+                        # Extract upper dimension
+                        if 'upper:' in param_line:
+                            upper_match = re.search(r'upper:\s*\[([^\]]*)\]', param_line)
+                            if upper_match:
+                                upper_str = upper_match.group(1).strip()
+                                if upper_str:
+                                    current_upper = [int(x.strip()) for x in upper_str.split(',') if x.strip().lstrip('-').isdigit()]
+
+                        j += 1
+
+                    # Add this transform's dimensions
+                    lower_dims.append(current_lower)
+                    upper_dims.append(current_upper)
+
+                    # Move to the next transform position
+                    i = j
+                else:
+                    i += 1
+
+            # Ensure we have the right number of dimension lists
+            while len(lower_dims) < len(transforms):
+                lower_dims.append([])
+            while len(upper_dims) < len(transforms):
+                upper_dims.append([])
+
+            # Truncate if we have too many
+            lower_dims = lower_dims[:len(transforms)]
+            upper_dims = upper_dims[:len(transforms)]
+
+            return lower_dims, upper_dims
+
+        except:
+            # If anything fails, return empty dimensions
+            return [], []
+
 
 def generate_mermaid_command(arg_str):
     """
@@ -277,8 +555,8 @@ def generate_mermaid_command(arg_str):
         # Evaluate the expression
         val = gdb.parse_and_eval(arg_str)
 
-        # Generate Mermaid diagram
-        generator = MermaidGenerator(val)
+        # Generate Mermaid diagram - pass the original expression
+        generator = MermaidGenerator(val, expression=arg_str)
         mermaid_code = generator.generate_mermaid()
 
         print("\n" + "="*60)
