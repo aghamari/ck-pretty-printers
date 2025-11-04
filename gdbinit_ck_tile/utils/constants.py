@@ -19,6 +19,8 @@ TRANSFORM_PATTERNS = [
     ('xor_t<', 'xor'),
     ('ck_tile::pass_through<', 'pass_through'),
     ('pass_through<', 'pass_through'),
+    ('ck_tile::pad<', 'pad'),
+    ('pad<', 'pad'),
     ('ck_tile::right_pad<', 'right_pad'),
     ('right_pad<', 'right_pad'),
     ('ck_tile::left_pad<', 'left_pad'),

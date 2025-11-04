@@ -214,6 +214,7 @@ class MermaidGenerator(TransformMixin):
             'pass_through': '#f3e5f5',
             'replicate': '#e3f2fd',
             'xor': '#ffebee',
+            'pad': '#fff9c4',
             'right_pad': '#fff9c4',
             'left_pad': '#fff9c4',
             'slice': '#efebe9',
