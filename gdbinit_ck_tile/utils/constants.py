@@ -15,6 +15,8 @@ TRANSFORM_PATTERNS = [
     ('merge<', 'merge'),
     ('ck_tile::replicate<', 'replicate'),
     ('replicate<', 'replicate'),
+    ('ck_tile::xor_t<', 'xor'),
+    ('xor_t<', 'xor'),
     ('ck_tile::pass_through<', 'pass_through'),
     ('pass_through<', 'pass_through'),
     ('ck_tile::right_pad<', 'right_pad'),

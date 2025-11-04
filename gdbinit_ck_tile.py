@@ -134,6 +134,12 @@ try:
     print("  Tensors: tensor_descriptor, tensor_adaptor, tensor_view, tensor_coordinate")
     print("  Distributions: tile_distribution, tile_window, static_distributed_tensor")
     print("  Containers: tuple, array, multi_index, thread_buffer")
+
+    # Register custom commands
+    from gdbinit_ck_tile.commands import MermaidCommand, mermaid
+    MermaidCommand()
+    print("  Commands: mermaid (generate Mermaid diagrams)")
+
 except Exception as e:
     print(f"Failed to register pretty printers: {e}")
     import traceback
