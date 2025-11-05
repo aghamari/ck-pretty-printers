@@ -1,0 +1,20 @@
+importing........
+imported........
+CK-Tile pretty printers registered successfully
+Registered printers for:
+  Tensors: tensor_descriptor, tensor_adaptor, tensor_view, tensor_coordinate
+  Distributions: tile_distribution, tile_window, static_distributed_tensor
+  Containers: tuple, array, multi_index, thread_buffer
+  Commands: mermaid (generate Mermaid diagrams)
+No source file named block_gemm_pipeline_agmem_bgmem_creg.hpp.
+Make breakpoint pending on future shared library load? (y or [n]) [answered N; input not from terminal]
+[Thread debugging using libthread_db enabled]
+Using host libthread_db library "/lib/x86_64-linux-gnu/libthread_db.so.1".
+*** Kernel H test ***
+  --> Using mfma_16x16x(16x2)
+  --> XOR-based bank-conflict-free
+  --> Adjust block tile shape
+  --> Enable prefetch
+  --> Enable instruction schedule
+  --> Enable cache-aware thread blocks schedule
+grid size 832
