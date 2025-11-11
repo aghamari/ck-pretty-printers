@@ -22,6 +22,23 @@ class MermaidGenerator(TransformMixin):
         self.type_str = str(val.type)
         self.expression = expression  # Original expression passed to mermaid command
 
+    def _get_pretty_printer_output(self):
+        """Get pretty printer output for the expression.
+
+        Returns:
+            String with pretty printer output (without $N = prefix) or None if failed
+        """
+        if not self.expression:
+            return None
+        try:
+            import gdb
+            output = gdb.execute(f"p {self.expression}", to_string=True)
+            if ' = ' in output:
+                return output.split(' = ', 1)[1]
+            return output
+        except:
+            return None
+
     def generate_mermaid(self):
         """
         Generate Mermaid diagram code for tensor_descriptor or tensor_adaptor.
@@ -31,17 +48,13 @@ class MermaidGenerator(TransformMixin):
         """
         # Get the actual type, not the full string with all nested types
         # First, try to get the pretty printer output to see what it identifies as
-        if self.expression:
-            try:
-                import gdb
-                output = gdb.execute(f"p {self.expression}", to_string=True)
-                # Check the first line of the pretty printer output
-                if 'tensor_descriptor{' in output:
-                    return self._generate_descriptor_mermaid()
-                elif 'tensor_adaptor{' in output:
-                    return self._generate_adaptor_mermaid()
-            except:
-                pass
+        output = self._get_pretty_printer_output()
+        if output:
+            # Check the first line of the pretty printer output
+            if 'tensor_descriptor{' in output:
+                return self._generate_descriptor_mermaid()
+            elif 'tensor_adaptor{' in output:
+                return self._generate_adaptor_mermaid()
 
         # Fallback to type string analysis
         # But be more careful - check what comes first after ck_tile::
@@ -134,30 +147,15 @@ class MermaidGenerator(TransformMixin):
         # If bottom_dims looks incomplete (e.g., only [0] when we have replicate with no lower),
         # try to get the full bottom_dims from pretty printer
         if bottom_dims and len(bottom_dims) < 2 and self.expression:
-            try:
-                import gdb  # Ensure gdb is available in this context
-                output = gdb.execute(f"p {self.expression}", to_string=True)
-                if ' = ' in output:
-                    output = output.split(' = ', 1)[1]
+            output = self._get_pretty_printer_output()
+            if output:
+                # Use the existing parser to extract dimensions
+                parsed_bottom, parsed_top = PrettyPrinterOutputParser.parse_bottom_top_dims(output)
 
-                # Look for bottom_dimension_ids in the output
-                import re
-                bottom_match = re.search(r'bottom_dimension_ids:\s*\[([^\]]+)\]', output)
-                if bottom_match:
-                    bottom_str = bottom_match.group(1)
-                    parsed_bottom = [int(x.strip()) for x in bottom_str.split(',') if x.strip().isdigit()]
-                    if len(parsed_bottom) > len(bottom_dims):
-                        bottom_dims = parsed_bottom
-
-                # Also check top_dims
-                top_match = re.search(r'top_dimension_ids:\s*\[([^\]]+)\]', output)
-                if top_match:
-                    top_str = top_match.group(1)
-                    parsed_top = [int(x.strip()) for x in top_str.split(',') if x.strip().isdigit()]
-                    if parsed_top:
-                        top_dims = parsed_top
-            except:
-                pass  # Keep the original dims if parsing fails
+                if len(parsed_bottom) > len(bottom_dims):
+                    bottom_dims = parsed_bottom
+                if parsed_top:
+                    top_dims = parsed_top
 
         # Use the unified diagram builder
         builder = MermaidDiagramBuilder()
@@ -191,17 +189,10 @@ class MermaidGenerator(TransformMixin):
         Generate the complete Mermaid diagram from pretty printer output.
         This is needed for ps_ys_to_xs_ and similar cases.
         """
-        if not self.expression:
-            return None
-
         try:
-            import gdb  # Ensure gdb is available in this context
-            # Execute the 'p' command to get pretty printer output
-            output = gdb.execute(f"p {self.expression}", to_string=True)
-
-            # Remove the "$N = " prefix from GDB output
-            if ' = ' in output:
-                output = output.split(' = ', 1)[1]
+            output = self._get_pretty_printer_output()
+            if not output:
+                return None
 
             # Use the new parser to extract all information
             parsed_data = PrettyPrinterOutputParser.parse_complete(output)
@@ -239,13 +230,9 @@ class MermaidGenerator(TransformMixin):
             return [], []
 
         try:
-            import gdb  # Ensure gdb is available in this context
-            # Execute the 'p' command to get pretty printer output
-            output = gdb.execute(f"p {self.expression}", to_string=True)
-
-            # Remove the "$N = " prefix from GDB output
-            if ' = ' in output:
-                output = output.split(' = ', 1)[1]
+            output = self._get_pretty_printer_output()
+            if not output:
+                return [], []
 
             # Use the parser to extract dimensions
             return PrettyPrinterOutputParser.extract_dimensions_for_transforms(output, len(transforms))

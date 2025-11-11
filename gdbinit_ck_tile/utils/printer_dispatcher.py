@@ -25,6 +25,9 @@ PRINTER_TYPE_MAP = [
     # Static distributed tensor (contains tensor_adaptor/view)
     ('static_distributed_tensor<', 'tile_distribution', 'StaticDistributedTensorPrinter'),
 
+    # Tile scatter/gather (contains tensor_view)
+    ('tile_scatter_gather<', 'tile_scatter_gather', 'TileScatterGatherPrinter'),
+
     # Tensor view/adaptor (contain tensor_descriptor)
     ('tensor_view<', 'tensor_view', 'TensorViewPrinter'),
     ('tensor_adaptor<', 'tensor_adaptor', 'TensorAdaptorPrinter'),
@@ -100,6 +103,9 @@ def get_printer_for_type(val: Any, type_str: str) -> Optional[Any]:
                         TensorCoordinatePrinter,
                         TensorAdaptorCoordinatePrinter
                     )
+                    printer_class = locals()[class_name]
+                elif module_name == 'tile_scatter_gather':
+                    from ..printers.tile_scatter_gather import TileScatterGatherPrinter
                     printer_class = locals()[class_name]
                 else:
                     continue

@@ -32,6 +32,7 @@ from gdbinit_ck_tile.printers.containers import (
     ArrayPrinter,
     ThreadBufferPrinter,
 )
+from gdbinit_ck_tile.printers.tile_scatter_gather import TileScatterGatherPrinter
 
 
 def build_pretty_printer():
@@ -94,6 +95,11 @@ def build_pretty_printer():
         '^ck_tile::static_distributed_tensor<.*>$',
         StaticDistributedTensorPrinter
     )
+    pp.add_printer(
+        'tile_scatter_gather',
+        '^ck_tile::tile_scatter_gather<.*>$',
+        TileScatterGatherPrinter
+    )
 
     # Core container printers
     # Patterns need to handle const/volatile qualifiers and references
@@ -132,7 +138,7 @@ try:
     print("CK-Tile pretty printers registered successfully")
     print("Registered printers for:")
     print("  Tensors: tensor_descriptor, tensor_adaptor, tensor_view, tensor_coordinate")
-    print("  Distributions: tile_distribution, tile_window, static_distributed_tensor")
+    print("  Distributions: tile_distribution, tile_window, static_distributed_tensor, tile_scatter_gather")
     print("  Containers: tuple, array, multi_index, thread_buffer")
 
     # Register custom commands

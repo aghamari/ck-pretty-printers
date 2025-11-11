@@ -166,10 +166,11 @@ class PrettyPrinterOutputParser:
                 - top_dims: List of top dimension IDs
                 - ntransform: Number of transforms
         """
+        bottom_dims, top_dims = PrettyPrinterOutputParser.parse_bottom_top_dims(output)
         return {
             'transforms': PrettyPrinterOutputParser.parse_transforms(output),
-            'bottom_dims': PrettyPrinterOutputParser.parse_bottom_top_dims(output)[0],
-            'top_dims': PrettyPrinterOutputParser.parse_bottom_top_dims(output)[1],
+            'bottom_dims': bottom_dims,
+            'top_dims': top_dims,
             'ntransform': PrettyPrinterOutputParser.parse_ntransform(output)
         }
 

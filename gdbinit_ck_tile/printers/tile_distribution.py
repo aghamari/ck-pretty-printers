@@ -361,7 +361,12 @@ class StaticDistributedTensorPrinter(BaseCKTilePrinter):
 
     def to_string(self):
         try:
-            type_str = str(self.val.type)
+            # Try to get the full type by stripping typedefs
+            try:
+                type_str = str(self.val.type.strip_typedefs())
+            except:
+                type_str = str(self.val.type)
+
             result = "static_distributed_tensor{\n"
 
             # Extract data type
@@ -369,45 +374,93 @@ class StaticDistributedTensorPrinter(BaseCKTilePrinter):
             if data_type:
                 result += f"  data_type: {data_type}\n"
 
-            # Extract shape from HsLengthss in tile_distribution_encoding
-            # Pattern: tile_distribution_encoding<..., ck_tile::tuple<ck_tile::sequence<4, 8, 64, 1> >, ...>
-            # Note: There may be a space before the closing >
-            shape = None
-            encoding_match = re.search(r'tile_distribution_encoding<', type_str)
-            if encoding_match:
-                # Find the first tuple after tile_distribution_encoding
-                start_pos = encoding_match.end()
-                # Skip the first sequence (RsLengths which is empty in this case)
-                after_rs = type_str[start_pos:]
-                tuple_match = re.search(r'tuple<ck_tile::sequence<([\d,\s]+)>\s*>', after_rs)
-                if tuple_match:
-                    shape_str = tuple_match.group(1)
-                    shape = [int(x.strip()) for x in shape_str.split(',') if x.strip().isdigit()]
+            # Try to get thread buffer size first
+            try:
+                thread_buf = self.val['thread_buf_']
+                buf_type_str = str(thread_buf.type)
+                size_match = re.search(r'thread_buffer<[^,]+,\s*(\d+)', buf_type_str)
+                if size_match:
+                    buffer_size = int(size_match.group(1))
+                    result += f"  thread_buffer_size: {buffer_size}\n"
+            except:
+                pass
 
-            if shape:
-                result += f"  shape: {shape}\n"
+            # Extract full tile_distribution information
+            if 'tile_distribution<' in type_str:
+                # Extract tensor_adaptor information
+                adaptor_info = self._extract_adaptor_info(type_str)
+                if adaptor_info:
+                    result += "\n  tensor_adaptor: {\n"
+                    result += adaptor_info
+                    result += "  }\n"
 
-            # Extract distribution transform information from tensor_adaptor in the type
-            # This reuses the existing transform extraction logic but from the type, not runtime
-            transforms = []
+                # Extract tensor_descriptor information
+                descriptor_info = self._extract_descriptor_info(type_str)
+                if descriptor_info:
+                    result += "\n  tensor_descriptor: {\n"
+                    result += descriptor_info
+                    result += "  }\n"
 
-            # Find tensor_adaptor and extract its transforms tuple
-            adaptor_match = re.search(r'tensor_adaptor<ck_tile::tuple<([^>]+(?:>[^>]+)*)', type_str)
-            if adaptor_match:
-                transforms_str = adaptor_match.group(1)
+                # Extract tile_distribution_encoding information
+                # Reuse the comprehensive extraction from TileDistributionPrinter
+                temp_printer = TileDistributionPrinter(self.val)
+                encoding_info = temp_printer._extract_encoding_info(type_str)
+                if encoding_info:
+                    result += "\n  tile_distribution_encoding: "
+                    result += encoding_info.replace('\n', '\n  ')
+                    result += "\n"
 
-                # Extract replicate
+            result += "}"
+            return result
+
+        except Exception as e:
+            return self.format_error(str(e), "static_distributed_tensor")
+
+    def _extract_adaptor_info(self, type_str):
+        """Extract tensor_adaptor information from type string"""
+        try:
+            if 'tensor_adaptor<' not in type_str:
+                return None
+
+            result = ""
+
+            # Find tensor_adaptor and extract its transforms
+            adaptor_start = type_str.find('tensor_adaptor<')
+            if adaptor_start == -1:
+                return None
+
+            # Get a section of the type string from the adaptor start
+            adaptor_section = type_str[adaptor_start:]
+
+            # Extract transforms tuple - use simpler approach
+            # Find the first tuple after tensor_adaptor
+            tuple_start = adaptor_section.find('ck_tile::tuple<')
+            if tuple_start != -1:
+                # Find the matching closing bracket for this tuple
+                pos = tuple_start + len('ck_tile::tuple<')
+                bracket_count = 1
+                end = pos
+                while bracket_count > 0 and end < len(adaptor_section):
+                    if adaptor_section[end] == '<':
+                        bracket_count += 1
+                    elif adaptor_section[end] == '>':
+                        bracket_count -= 1
+                    end += 1
+
+                transforms_str = adaptor_section[pos:end-1]
+                transforms = []
+
+                # Parse each transform
                 if 'replicate' in transforms_str:
                     transforms.append("replicate")
 
-                # Extract unmerge with proper bracket matching
+                # Extract all unmerge transforms
                 pos = 0
                 while True:
                     unmerge_pos = transforms_str.find('unmerge<', pos)
                     if unmerge_pos == -1:
                         break
 
-                    # Find matching close bracket
                     bracket_start = unmerge_pos + len('unmerge<')
                     bracket_count = 1
                     end = bracket_start
@@ -426,20 +479,23 @@ class StaticDistributedTensorPrinter(BaseCKTilePrinter):
 
                     pos = end
 
-                # Extract merge transforms
+                # Extract all merge transforms
                 pos = 0
                 while True:
                     merge_pos = transforms_str.find('merge', pos)
                     if merge_pos == -1:
                         break
 
-                    # Find the opening <
-                    open_bracket = transforms_str.find('<', merge_pos)
-                    if open_bracket == -1 or open_bracket > merge_pos + 30:  # Sanity check
+                    # Make sure it's not 'unmerge'
+                    if merge_pos > 0 and transforms_str[merge_pos-1] == 'n':
                         pos = merge_pos + 5
                         continue
 
-                    # Find matching close bracket
+                    open_bracket = transforms_str.find('<', merge_pos)
+                    if open_bracket == -1 or open_bracket > merge_pos + 30:
+                        pos = merge_pos + 5
+                        continue
+
                     bracket_count = 1
                     end = open_bracket + 1
                     while bracket_count > 0 and end < len(transforms_str):
@@ -453,7 +509,6 @@ class StaticDistributedTensorPrinter(BaseCKTilePrinter):
                     consts = re.findall(r'constant<(\d+)>', merge_content)
                     if consts:
                         dims = [int(c) for c in consts]
-                        # Get merge type
                         merge_type = transforms_str[merge_pos:open_bracket]
                         if 'v2' in merge_type:
                             transforms.append(f"merge_v2{dims}")
@@ -462,22 +517,75 @@ class StaticDistributedTensorPrinter(BaseCKTilePrinter):
 
                     pos = end
 
+                if transforms:
+                    result += f"      transforms: [{', '.join(transforms)}]\n"
+
+            # Extract dimension sequences (lower and upper dimensions)
+            # Pattern: sequence<0, 1>, sequence<5, 4>
+            seq_pattern = r'sequence<([\d,\s-]+)>'
+            sequences = re.findall(seq_pattern, type_str[adaptor_start:adaptor_start+2000])
+
+            if len(sequences) >= 2:
+                # Last two sequences are typically bottom and top dimensions
+                bottom_dims_str = sequences[-2]
+                top_dims_str = sequences[-1]
+
+                bottom_dims = [int(x.strip()) for x in bottom_dims_str.split(',') if x.strip().lstrip('-').isdigit()]
+                top_dims = [int(x.strip()) for x in top_dims_str.split(',') if x.strip().lstrip('-').isdigit()]
+
+                if bottom_dims:
+                    result += f"      bottom_dims: {bottom_dims}\n"
+                if top_dims:
+                    result += f"      top_dims: {top_dims}\n"
+
+            return result if result else None
+
+        except Exception:
+            return None
+
+    def _extract_descriptor_info(self, type_str):
+        """Extract tensor_descriptor information from type string"""
+        try:
+            if 'tensor_descriptor<' not in type_str:
+                return None
+
+            result = ""
+
+            # Find tensor_descriptor
+            desc_start = type_str.find('tensor_descriptor<')
+            if desc_start == -1:
+                return None
+
+            # Extract the descriptor content
+            desc_section = type_str[desc_start:desc_start+1500]
+
+            # Extract transforms
+            transforms = []
+            if 'unmerge' in desc_section:
+                unmerge_match = re.search(r'unmerge<ck_tile::tuple<ck_tile::constant<(\d+)>', desc_section)
+                if unmerge_match:
+                    transforms.append(f"unmerge[{unmerge_match.group(1)}]")
+
             if transforms:
-                result += f"  transforms: {', '.join(transforms)}\n"
+                result += f"      transforms: [{', '.join(transforms)}]\n"
 
-            # Try to get thread buffer size
-            try:
-                thread_buf = self.val['thread_buf_']
-                buf_type_str = str(thread_buf.type)
-                size_match = re.search(r'thread_buffer<[^,]+,\s*(\d+)', buf_type_str)
-                if size_match:
-                    buffer_size = int(size_match.group(1))
-                    result += f"  thread_buffer_size: {buffer_size}\n"
-            except:
-                pass
+            # Extract dimension info
+            # Look for sequences that represent dimensions
+            sequences = re.findall(r'sequence<([\d,\s-]+)>', desc_section[:500])
+            if sequences:
+                # Usually the first few sequences are dimension mappings
+                if len(sequences) > 0:
+                    dims = [int(x.strip()) for x in sequences[0].split(',') if x.strip().lstrip('-').isdigit()]
+                    if dims:
+                        result += f"      dimensions: {dims}\n"
 
-            result += "}"
-            return result
+            # Extract shape constant if present
+            const_match = re.search(r'constant<(\d+)>', desc_section)
+            if const_match:
+                result += f"      size: {const_match.group(1)}\n"
 
-        except Exception as e:
-            return self.format_error(str(e), "static_distributed_tensor")
+            return result if result else None
+
+        except Exception:
+            return None
+

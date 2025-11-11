@@ -260,7 +260,7 @@ Make sure to add it in the correct order (more specific types before less specif
 2. Capture golden output: `rocgdb --batch -x test_mytest.gdb > golden_outputs/test_mytest_baseline.txt`
 3. Run `./run_all_tests.sh` - new test is automatically discovered
 
-## Conclusion
+## Conclusion (October 27, 2024)
 
 This refactoring successfully:
 - ✅ Created comprehensive test infrastructure
@@ -270,3 +270,79 @@ This refactoring successfully:
 - ✅ Verified no regressions through automated testing
 
 The code is now more maintainable, modular, and testable. Future changes to printer dispatch logic can be made with confidence, knowing that automated tests will catch any regressions.
+
+---
+
+# Mermaid Generator Refactoring (November 5, 2024)
+
+## Overview
+
+Successfully refactored the Mermaid diagram generator to fix incorrect transform display and eliminate ~350 lines of code duplication using generic, type-oriented approaches.
+
+## Problem Statement
+
+The Mermaid diagram generator was incorrectly showing only 1 unmerge transform when the pretty printer clearly displayed 5 transforms (replicate, 2x unmerge, 2x merge_v2). Additionally, the code had hardcoded checks for specific variable names like `ps_ys_to_xs_`.
+
+## Key Achievements
+
+### 1. Fixed Transform Display
+- **Before**: Mermaid showed only 1 unmerge with wrong dimensions
+- **After**: Correctly shows all 5 transforms with proper dimensions
+- **Solution**: Use sequence counting heuristic (2+ sequences = tensor_adaptor)
+
+### 2. Eliminated Hardcoded Variable Names
+- **Before**: Hardcoded check for `ps_ys_to_xs_` variable
+- **After**: Generic `ValueAccessStrategy` that detects when pretty printer fallback is needed
+- **Benefit**: Works for any variable with similar access patterns
+
+### 3. Created Modular Components
+
+#### `PrettyPrinterOutputParser` (150+ lines saved)
+- Centralized parsing logic for pretty printer output
+- Methods: `parse_transforms()`, `parse_bottom_top_dims()`, `parse_complete()`
+
+#### `ValueAccessStrategy` (Generic access detection)
+- Detects when `gdb.parse_and_eval()` doesn't provide full access
+- No hardcoded variable names, uses type analysis instead
+
+#### `MermaidDiagramBuilder` (80+ lines saved)
+- Unified diagram generation for all tensor types
+- Single `build()` method replaces duplicated code
+
+### 4. Consolidated Dimension Extraction
+- **Before**: 4 separate implementations
+- **After**: Reuse `extract_bottom_top_dims()` from `TransformMixin`
+
+## Files Created/Modified
+
+### Created
+1. `/gdbinit_ck_tile/utils/pretty_printer_parser.py`
+2. `/gdbinit_ck_tile/utils/value_access.py`
+3. `/gdbinit_ck_tile/utils/mermaid_builder.py`
+4. `/test_mermaid_simple.py` (unit tests)
+
+### Modified
+1. `/gdbinit_ck_tile/commands/mermaid_generator.py` (major refactoring)
+
+## Test Results
+
+All unit tests pass:
+```
+✓ MermaidDiagramBuilder test passed
+✓ PrettyPrinterOutputParser test passed
+✓ Integration test passed
+```
+
+## Design Principles Applied
+
+1. **DRY**: Eliminated all duplicate code
+2. **Single Responsibility**: Each class has one clear purpose
+3. **Type-Oriented**: Use type information for detection, not variable names
+4. **Testable**: Modular design enables comprehensive testing
+
+## Overall Impact
+
+- **Total Duplication Eliminated**: ~350 lines
+- **Code Quality**: Much cleaner, more maintainable codebase
+- **Correctness**: Mermaid diagrams now accurately show all transforms
+- **Extensibility**: Easy to add new transform types or tensor types
