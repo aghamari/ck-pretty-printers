@@ -214,16 +214,52 @@ class ArrayPrinter(BaseCKTilePrinter):
 class ThreadBufferPrinter(BaseCKTilePrinter):
     """Pretty printer for ck_tile::thread_buffer<T, N>"""
 
+    def display_hint(self):
+        """Tell GDB this is an array-like container."""
+        return None  # Don't treat as array to avoid element access issues
+
     def to_string(self):
         try:
             type_str = str(self.val.type)
 
-            # Extract size from type
-            match = re.search(r'thread_buffer<[^,]+,\s*(\d+)', type_str)
-            if not match:
-                return self.format_error("Could not parse thread_buffer type", "thread_buffer")
+            # Very strict check - must be exactly a thread_buffer type
+            if not (type_str.startswith('ck_tile::thread_buffer<') or
+                    type_str.startswith('struct ck_tile::thread_buffer<')):
+                # Not a thread_buffer type
+                return None
 
-            size = int(match.group(1))
+            # Additional safety: Check if we can access the expected members
+            # If this is really a thread_buffer, it should have 'data' member
+            try:
+                # Try to access data member to verify this is a real thread_buffer
+                _ = self.val['data']
+            except:
+                # Can't access data member - this is not a proper thread_buffer
+                # Could be a scalar being incorrectly matched
+                return None
+
+            # Extract size from type - handle various formats like (unsigned long)1
+            # First try the improved pattern that handles type casts
+            match = re.search(r'thread_buffer<[^,]+,\s*(?:\(.*?\))?(\d+)', type_str)
+            if not match:
+                # Fallback: try to get N from static member if available
+                try:
+                    size = int(self.val['N'])
+                except:
+                    # Last resort: check for data array size
+                    try:
+                        data = self.val['data']
+                        # Try to get the array size from its type
+                        data_type_str = str(data.type)
+                        size_match = re.search(r'\[(\d+)\]', data_type_str)
+                        if size_match:
+                            size = int(size_match.group(1))
+                        else:
+                            return self.format_error(f"Could not parse thread_buffer type: {type_str}", "thread_buffer")
+                    except:
+                        return self.format_error(f"Could not parse thread_buffer type: {type_str}", "thread_buffer")
+            else:
+                size = int(match.group(1))
 
             # Extract data type
             data_type_match = re.search(r'thread_buffer<([^,]+),', type_str)
@@ -235,7 +271,7 @@ class ThreadBufferPrinter(BaseCKTilePrinter):
             result = f"thread_buffer<{data_type}, {size}> {{\n"
             result += f"  size: {size}\n"
 
-            # Try to show first few elements
+            # Try to show actual data elements
             try:
                 data = self.val['data']
                 elements = []
@@ -244,16 +280,50 @@ class ThreadBufferPrinter(BaseCKTilePrinter):
                 for i in range(max_display):
                     try:
                         val = data[i]
-                        elements.append(str(val))
-                    except:
+                        # Get the actual value, not the pretty printed version
+                        # Try to extract numeric value
+                        try:
+                            # Try as integer first
+                            num_val = int(val)
+                            elements.append(str(num_val))
+                        except:
+                            try:
+                                # Try as float
+                                float_val = float(val)
+                                elements.append(str(float_val))
+                            except:
+                                # Fall back to raw string
+                                elements.append(str(val))
+                    except Exception as e:
+                        # If we can't access this element, stop trying
                         break
 
                 if elements:
-                    result += f"  data (first {len(elements)}): [{', '.join(elements)}"
+                    result += f"  data: [{', '.join(elements)}"
                     if size > max_display:
                         result += f", ... ({size} total)"
                     result += "]\n"
+                else:
+                    result += "  data: <not accessible>\n"
 
+            except Exception as e:
+                # Check if this is a type-only address (0x2000...)
+                error_msg = str(e)
+                if "Cannot access memory" in error_msg:
+                    # Check if the error message contains a type-only address
+                    if "0x2000" in error_msg:
+                        result += "  data: <type-only, use type-print command>\n"
+                    # Or check the val's address if available
+                    elif hasattr(self.val, 'address') and self.val.address:
+                        addr_str = str(self.val.address)
+                        if addr_str.startswith("0x2000"):
+                            result += "  data: <type-only, use type-print command>\n"
+                        else:
+                            result += "  data: <not accessible>\n"
+                    else:
+                        result += "  data: <not accessible>\n"
+                else:
+                    result += "  data: <not accessible>\n"
             except:
                 result += "  data: <not accessible>\n"
 

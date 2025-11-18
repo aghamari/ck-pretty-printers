@@ -65,6 +65,18 @@ def build_pretty_printer():
         '^ck_tile::tensor_view<.*>$',
         TensorViewPrinter
     )
+    # Also handle type aliases like tile_scatter_gather<...>::BottomTensorView
+    pp.add_printer(
+        'tensor_view_alias',
+        '.*::BottomTensorView$',
+        TensorViewPrinter
+    )
+    # Handle tensor_view<...>::TensorDesc aliases
+    pp.add_printer(
+        'tensor_descriptor_alias',
+        '.*::TensorDesc$',
+        TensorDescriptorPrinter
+    )
     pp.add_printer(
         'tile_distribution',
         '^ck_tile::tile_distribution<.*>$',
@@ -118,9 +130,10 @@ def build_pretty_printer():
         '(^|.*\s)ck_tile::multi_index<.*>',
         ArrayPrinter  # multi_index is just an alias for array
     )
+    # Thread buffer - use very strict pattern to avoid matching array elements
     pp.add_printer(
         'thread_buffer',
-        '(^|.*\s)ck_tile::thread_buffer<.*>',
+        '^(struct )?ck_tile::thread_buffer<.*>$',  # Must be exactly thread_buffer, nothing else
         ThreadBufferPrinter
     )
 
